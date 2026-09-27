@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+
+<meta charset="utf-8">
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1">
+
+<title>LCC Bell — LIVE</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<style>
+
+*{
+  box-sizing:border-box;
+}
+
+html,
+body{
+  margin:0;
+  width:100%;
+  min-height:100%;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#020617;
+  color:#fff;
+}
+
+
+/* =========================
+   LOGIN TOKEN
+========================= */
+
+#login{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.login-box{
+  width:min(500px,100%);
+  background:#0f172a;
+  border-radius:25px;
+  padding:35px;
+  text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.45);
+}
+
+.login-icon{
+  font-size:70px;
+}
+
+.login-title{
+  font-size:34px;
+  font-weight:1000;
+  margin:10px 0;
+}
+
+.login-sub{
+  color:#94a3b8;
+  margin-bottom:25px;
+}
+
+#tokenInput{
+  width:100%;
+  padding:18px;
+  border:2px solid #334155;
+  border-radius:14px;
+  background:#020617;
+  color:#fff;
+  text-align:center;
+  font-size:25px;
+  font-weight:1000;
+  letter-spacing:4px;
+  text-transform:uppercase;
+  outline:none;
+}
+
+#tokenInput:focus{
+  border-color:#2563eb;
+}
+
+#loginButton{
+  width:100%;
+  margin-top:15px;
+  padding:17px;
+  border:0;
+  border-radius:14px;
+  background:#2563eb;
+  color:#fff;
+  font-size:20px;
+  font-weight:1000;
+  cursor:pointer;
+}
+
+#loginError{
+  min-height:25px;
+  margin-top:15px;
+  color:#f87171;
+  font-weight:900;
+}
+
+
+/* =========================
+   LIVE
+========================= */
+
+#live{
+  display:none;
+  min-height:100vh;
+  padding:25px;
+}
+
+.header{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+.header-title{
+  font-size:clamp(28px,5vw,52px);
+  font-weight:1000;
+}
+
+.header-sub{
+  color:#94a3b8;
+  font-size:18px;
+  margin-top:5px;
+}
+
+
+/* =========================
+   WINNER
+========================= */
+
+#winnerBox{
+  min-height:170px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  background:#0f172a;
+  border:3px solid #334155;
+  border-radius:25px;
+  margin-bottom:25px;
+  padding:25px;
+}
+
+#winnerText{
+  font-size:clamp(30px,6vw,72px);
+  font-weight:1000;
+  line-height:1.15;
+}
+
+#winnerBox.success{
+  background:#14532d;
+  border-color:#22c55e;
+}
+
+
+/* =========================
+   GRID
+========================= */
+
+#players{
+  display:grid;
+  grid-template-columns:
+    repeat(auto-fit,minmax(150px,1fr));
+  gap:18px;
+  max-width:1400px;
+  margin:0 auto;
+}
+
+.player{
+  min-height:150px;
+  border-radius:22px;
+  background:#1e293b;
+  border:3px solid #334155;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  transition:.2s;
+}
+
+.player-number{
+  font-size:clamp(50px,8vw,90px);
+  font-weight:1000;
+  line-height:1;
+}
+
+.player-status{
+  margin-top:12px;
+  font-size:17px;
+  font-weight:1000;
+  color:#94a3b8;
+}
+
+.player.winner{
+  background:#16a34a;
+  border-color:#4ade80;
+  transform:scale(1.03);
+  box-shadow:
+    0 0 30px rgba(34,197,94,.35);
+}
+
+.player.winner .player-status{
+  color:#fff;
+}
+
+.player.banned{
+  background:#450a0a;
+  border-color:#991b1b;
+}
+
+.player.banned .player-status{
+  color:#fca5a5;
+}
+
+
+/* =========================
+   WAITING
+========================= */
+
+.waiting{
+  color:#94a3b8;
+}
+
+.connection{
+  text-align:center;
+  margin-top:20px;
+  color:#64748b;
+  font-size:13px;
+}
+
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media(max-width:600px){
+
+  #live{
+    padding:15px;
+  }
+
+  #players{
+    grid-template-columns:
+      repeat(2,1fr);
+    gap:10px;
+  }
+
+  .player{
+    min-height:120px;
+  }
+
+  #winnerBox{
+    min-height:130px;
+  }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<!-- =========================
+     LOGIN
+========================= -->
+
+<section id="login">
+
+  <div class="login-box">
+
+    <div class="login-icon">
+      📺
+    </div>
+
+    <div class="login-title">
+      LCC BELL LIVE
+    </div>
+
+    <div class="login-sub">
+      Masukkan Token LIVE dari Server / Juri
+    </div>
+
+    <input
+      id="tokenInput"
+      type="text"
+      maxlength="8"
+      placeholder="TOKEN"
+      autocomplete="off"
+      spellcheck="false"
+    >
+
+    <button id="loginButton">
+      MASUK LIVE
+    </button>
+
+    <div id="loginError"></div>
+
+  </div>
+
+</section>
+
+
+<!-- =========================
+     LIVE SCREEN
+========================= -->
+
+<section id="live">
+
+  <div class="header">
+
+    <div class="header-title">
+      🔴 LCC BELL — LIVE
+    </div>
+
+    <div class="header-sub">
+      SIAPA YANG BERHAK MENJAWAB?
+    </div>
+
+  </div>
+
+
+  <div id="winnerBox">
+
+    <div
+      id="winnerText"
+      class="waiting">
+      MENUNGGU SOAL...
+    </div>
+
+  </div>
+
+
+  <div id="players"></div>
+
+
+  <div
+    id="connection"
+    class="connection">
+    Menghubungkan...
+  </div>
+
+</section>
+
+
+<script>
+
+if(!window.db){
+
+  document.body.innerHTML = `
+    <div style="
+      padding:40px;
+      text-align:center;
+      font-family:Arial">
+      <h2>Firebase belum dikonfigurasi</h2>
+    </div>
+  `;
+
+  throw new Error(
+    "Firebase configuration belum diisi."
+  );
+
+}
+
+
+const room =
+  db.ref("lcc/current");
+
+
+let liveToken =
+  "";
+
+
+/* =========================
+   LOGIN
+========================= */
+
+function login(){
+
+  const entered =
+    document.getElementById(
+      "tokenInput"
+    ).value
+      .trim()
+      .toUpperCase();
+
+
+  if(!entered){
+
+    document.getElementById(
+      "loginError"
+    ).textContent =
+      "Masukkan Token LIVE.";
+
+    return;
+
+  }
+
+
+  room.once(
+    "value"
+  ).then(snap=>{
+
+    const data =
+      snap.val() || {};
+
+
+    const realToken =
+      String(
+        data.liveToken || ""
+      ).toUpperCase();
+
+
+    if(
+      realToken &&
+      entered===realToken
+    ){
+
+      liveToken =
+        entered;
+
+
+      document.getElementById(
+        "login"
+      ).style.display =
+        "none";
+
+
+      document.getElementById(
+        "live"
+      ).style.display =
+        "block";
+
+
+      render(
+        data
+      );
+
+
+      startLive();
+
+    }else{
+
+      document.getElementById(
+        "loginError"
+      ).textContent =
+        "❌ TOKEN LIVE TIDAK VALID.";
+
+    }
+
+  }).catch(e=>{
+
+    document.getElementById(
+      "loginError"
+    ).textContent =
+      "Firebase gagal: "+
+      e.message;
+
+  });
+
+}
+
+
+document.getElementById(
+  "loginButton"
+).onclick =
+  login;
+
+
+document.getElementById(
+  "tokenInput"
+).addEventListener(
+  "keydown",
+  e=>{
+
+    if(e.key==="Enter"){
+      login();
+    }
+
+  }
+);
+
+
+/* =========================
+   LIVE
+========================= */
+
+function startLive(){
+
+  room.on(
+    "value",
+    snap=>{
+
+      const data =
+        snap.val() || {};
+
+      /*
+       * Jika token LIVE di server
+       * diganti, layar LIVE lama
+       * otomatis kembali ke login.
+       */
+
+      const currentToken =
+        String(
+          data.liveToken || ""
+        ).toUpperCase();
+
+
+      if(
+        currentToken!==liveToken
+      ){
+
+        location.reload();
+
+        return;
+
+      }
+
+
+      render(data);
+
+
+      document.getElementById(
+        "connection"
+      ).textContent =
+        "● LIVE TERHUBUNG";
+
+    },
+
+    err=>{
+
+      document.getElementById(
+        "connection"
+      ).textContent =
+        "✕ Firebase gagal: "+
+        err.message;
+
+    }
+
+  );
+
+}
+
+
+/* =========================
+   RENDER
+========================= */
+
+function render(s){
+
+  const winner =
+    s.winner != null
+      ? Number(s.winner)
+      : null;
+
+
+  const winnerBox =
+    document.getElementById(
+      "winnerBox"
+    );
+
+  const winnerText =
+    document.getElementById(
+      "winnerText"
+    );
+
+
+  if(winner){
+
+    winnerBox.className =
+      "success";
+
+
+    winnerText.className =
+      "";
+
+
+    winnerText.innerHTML =
+      "🏆 PESERTA "+
+      winner+
+      " BERHASIL MENEKAN!";
+
+  }else{
+
+    winnerBox.className =
+      "";
+
+
+    winnerText.className =
+      "waiting";
+
+
+    if(s.status==="armed"){
+
+      winnerText.textContent =
+        "🟢 BELL AKTIF — SIAPA CEPAT?";
+
+    }else{
+
+      winnerText.textContent =
+        "MENUNGGU SOAL...";
+
+    }
+
+  }
+
+
+  /* =========================
+     PESERTA
+  ========================= */
+
+  const container =
+    document.getElementById(
+      "players"
+    );
+
+
+  container.innerHTML="";
+
+
+  const players =
+    s.players || {};
+
+
+  const keys =
+    Object.keys(players);
+
+
+  let count =
+    Number(s.participantCount);
+
+
+  if(!count || count<1){
+
+    count =
+      keys.length || 12;
+
+  }
+
+
+  for(let i=1;i<=count;i++){
+
+    const player =
+      keys
+        .map(k=>players[k])
+        .find(
+          p =>
+            Number(p?.number)===i
+        );
+
+
+    const isBanned =
+      !!player?.banned;
+
+
+    const isWinner =
+      winner===i;
+
+
+    const box =
+      document.createElement(
+        "div"
+      );
+
+
+    box.className =
+      "player"+
+      (isWinner ? " winner" : "")+
+      (isBanned ? " banned" : "");
+
+
+    let status =
+      "PESERTA";
+
+
+    if(isBanned){
+
+      status =
+        "BANNED";
+
+    }else if(isWinner){
+
+      status =
+        "🏆 BERHASIL";
+
+    }
+
+
+    box.innerHTML = `
+
+      <div class="player-number">
+        ${i}
+      </div>
+
+      <div class="player-status">
+        ${status}
+      </div>
+
+    `;
+
+
+    container.appendChild(
+      box
+    );
+
+  }
+
+}
+
+</script>
+
+</body>
+
+</html>
